@@ -38,12 +38,19 @@ sectionPicker.addEventListener("click", (e) => {
     return;
   }
 
+  function selectSection(section, tabEl){
+  const target = forms[section];
+  if (!target){
+    console.error("No form registered for section:", section);
+    alert("Section '" + section + "' isn't wired up. Check forms{} in app.js.");
+    return;
+  }
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  tab.classList.add("active");
+  tabEl.classList.add("active");
   hideAllForms();
   target.classList.remove("hidden");
   clearMsg();
-});
+}
 
 function hideAllForms(){ Object.values(forms).forEach(f => f.classList.add("hidden")); }
 function showMsg(text, type){
