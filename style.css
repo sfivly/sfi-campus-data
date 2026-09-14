@@ -33,10 +33,10 @@ textarea{min-height:70px; resize:vertical;}
 .btn.secondary{background:#fff; color:var(--primary); border:1.5px solid var(--primary);}
 .btn.small{width:auto; padding:8px 14px; font-size:13px; margin-top:8px;}
 .btn.ghost{background:transparent; color:var(--muted); border:1px dashed var(--border);}
-.section-tabs{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+.section-tabs{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
 .tab{
-  flex:1 1 45%; text-align:center; padding:10px 6px; background:#fff; border-radius:9px;
-  border:1.5px solid var(--border); font-size:13px; font-weight:600; color:var(--muted); cursor:pointer;
+  width:100%; text-align:left; padding:14px 16px; background:#fff; border-radius:9px;
+  border:1.5px solid var(--border); font-size:16px; font-weight:700; color:#000; cursor:pointer;
 }
 .tab.active{border-color:var(--primary); color:var(--primary); background:#fdeef0;}
 .hidden{display:none !important;}
