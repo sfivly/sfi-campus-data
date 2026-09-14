@@ -114,16 +114,29 @@ function formatCell(key, value){
   return value;
 }
 
+// Escapes any user-submitted value before it's dropped into innerHTML.
+// Without this, anonymous form submissions (candidate names, remarks,
+// issue text, etc.) could inject markup/script that runs in the admin's
+// browser — which is holding the admin password in sessionStorage.
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function render(){
-  resultTitle.innerHTML = `<h3>${lastTitle}</h3>`;
+  resultTitle.innerHTML = `<h3>${escapeHtml(lastTitle)}</h3>`;
   if (!lastRows.length){ resultTable.innerHTML = "<p>No entries found.</p>"; return; }
   let html = "<table><thead><tr>";
-  lastColumns.forEach(c => html += `<th>${c}</th>`);
+  lastColumns.forEach(c => html += `<th>${escapeHtml(c)}</th>`);
   html += "<th>Action</th></tr></thead><tbody>";
   lastRows.forEach(r => {
     html += "<tr>";
-    lastColKeys.forEach(k => { html += `<td>${formatCell(k, r[k])}</td>`; });
-    html += `<td><button class="btn small secondary" onclick="deleteRow('${r.id}')">Delete</button></td>`;
+    lastColKeys.forEach(k => { html += `<td>${escapeHtml(formatCell(k, r[k]))}</td>`; });
+    html += `<td><button class="btn small secondary" onclick="deleteRow('${escapeHtml(r.id)}')">Delete</button></td>`;
     html += "</tr>";
   });
   html += "</tbody></table>";
@@ -156,15 +169,15 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
     exportWrap.style.width = "1400px";
     exportWrap.style.fontFamily = "'Noto Sans Malayalam','Segoe UI',sans-serif";
 
-    let html = `<h2 style="margin:0 0 12px;">${lastTitle}</h2>`;
+    let html = `<h2 style="margin:0 0 12px;">${escapeHtml(lastTitle)}</h2>`;
     html += `<table style="width:100%; border-collapse:collapse; font-size:13px;">`;
     html += "<thead><tr>";
-    lastColumns.forEach(c => html += `<th style="border:1px solid #ccc; padding:6px; background:#f0f0f2; text-align:left;">${c}</th>`);
+    lastColumns.forEach(c => html += `<th style="border:1px solid #ccc; padding:6px; background:#f0f0f2; text-align:left;">${escapeHtml(c)}</th>`);
     html += "</tr></thead><tbody>";
     lastRows.forEach(r => {
       html += "<tr>";
       lastColKeys.forEach(k => {
-        html += `<td style="border:1px solid #ccc; padding:6px; vertical-align:top;">${formatCell(k, r[k]) ?? ""}</td>`;
+        html += `<td style="border:1px solid #ccc; padding:6px; vertical-align:top;">${escapeHtml(formatCell(k, r[k]) ?? "")}</td>`;
       });
       html += "</tr>";
     });
