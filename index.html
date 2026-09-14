@@ -35,9 +35,6 @@
   <!-- ================= CLASS-WISE (independent, per-rep submissions) ================= -->
   <div id="form-classwise" class="card hidden">
     <h3>Class-wise Details</h3>
-    <p class="hint">You don't have to finish a class in one sitting. Pick the year and class, save one rep, and come
-      back any time — today, tomorrow, next class period — to add the next rep or the remark. Every save is stored
-      immediately, on its own.</p>
 
     <div id="cw-step-basic">
       <label>Year</label>
@@ -73,23 +70,20 @@
       <select id="cw-rep-current">
         <option value="SFI">SFI</option><option value="Others">Others</option><option value="Vacant">Vacant</option>
       </select>
-      <label>Chance of Winning</label>
+      <label>Chance of Winning (this seat)</label>
       <select id="cw-rep-winchance">
         <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
       </select>
       <button type="button" id="cw-rep-submit-btn" class="btn">Save This Rep</button>
 
       <hr>
-      <h4>Class Remark <span style="font-weight:normal;">(optional — add or update any time)</span></h4>
+      <h4>Class Remark <span style="font-weight:normal;">(Add or update any time)</span></h4>
       <textarea id="cw-remark-text" placeholder="Favorable/unfavorable factors, key people, strategy"></textarea>
       <button type="button" id="cw-remark-submit-btn" class="btn secondary">Save Remark</button>
 
       <hr>
       <button type="button" id="cw-change-class-btn" class="btn small secondary">Change Year / Class</button>
     </div>
-
-    <p class="hint">Made a mistake in an earlier submission? Just submit a corrected entry — an admin can delete the wrong one later.</p>
-  </div>
 
   <!-- ================= UNIT COMMITTEE ================= -->
   <form id="form-unitcommittee" class="card hidden">
