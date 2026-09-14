@@ -139,11 +139,70 @@ async function deleteRow(id){
 document.getElementById("pdfBtn").addEventListener("click", async () => {
   if (!lastRows.length) { await loadReport(); }
   if (!lastRows.length) { alert("No data to export."); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape" });
-  doc.setFontSize(14);
-  doc.text(lastTitle, 14, 15);
-  const body = lastRows.map(r => lastColKeys.map(k => formatCell(k, r[k])));
-  doc.autoTable({ head: [lastColumns], body, startY: 20, styles: { fontSize: 8 }, theme: 'grid' });
-  doc.save(lastTitle.replace(/[^a-z0-9]/gi, "_") + ".pdf");
+
+  const btn = document.getElementById("pdfBtn");
+  btn.disabled = true;
+  btn.textContent = "Generating PDF...";
+
+  try {
+    // Render a clean, off-screen copy of the table for capture (avoids
+    // capturing the "Action/Delete" column and keeps styling consistent).
+    const exportWrap = document.createElement("div");
+    exportWrap.style.position = "fixed";
+    exportWrap.style.left = "-99999px";
+    exportWrap.style.top = "0";
+    exportWrap.style.background = "#fff";
+    exportWrap.style.padding = "16px";
+    exportWrap.style.width = "1400px";
+    exportWrap.style.fontFamily = "'Noto Sans Malayalam','Segoe UI',sans-serif";
+
+    let html = `<h2 style="margin:0 0 12px;">${lastTitle}</h2>`;
+    html += `<table style="width:100%; border-collapse:collapse; font-size:13px;">`;
+    html += "<thead><tr>";
+    lastColumns.forEach(c => html += `<th style="border:1px solid #ccc; padding:6px; background:#f0f0f2; text-align:left;">${c}</th>`);
+    html += "</tr></thead><tbody>";
+    lastRows.forEach(r => {
+      html += "<tr>";
+      lastColKeys.forEach(k => {
+        html += `<td style="border:1px solid #ccc; padding:6px; vertical-align:top;">${formatCell(k, r[k]) ?? ""}</td>`;
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    exportWrap.innerHTML = html;
+    document.body.appendChild(exportWrap);
+
+    const canvas = await html2canvas(exportWrap, { scale: 2, useCORS: true });
+    document.body.removeChild(exportWrap);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const imgWidth = pageWidth - 40;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 20;
+    const imgData = canvas.toDataURL("image/png");
+
+    doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+    heightLeft -= (pageHeight - 40);
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight + 20;
+      doc.addPage();
+      doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - 40);
+    }
+
+    doc.save(lastTitle.replace(/[^a-z0-9]/gi, "_") + ".pdf");
+  } catch (err) {
+    console.error(err);
+    alert("PDF generation failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Download as PDF";
+  }
 });
