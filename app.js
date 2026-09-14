@@ -44,14 +44,14 @@ function showMsg(text, type){
 function clearMsg(){ msgBox.className = "msg"; msgBox.textContent=""; }
 function uuidLike(){ return "g-" + Date.now() + "-" + Math.random().toString(16).slice(2); }
 
-// ---------- CLASS-WISE (step-by-step wizard) ----------
+// ---------- CLASS-WISE (independent, per-rep submissions) ----------
 const cwYear = document.getElementById("cw-year");
 const cwClass = document.getElementById("cw-class");
 const cwClassManual = document.getElementById("cw-class-manual");
+const cwManualRepsWrap = document.getElementById("cw-manual-reps-wrap");
 const cwStepBasic = document.getElementById("cw-step-basic");
 const cwStepRep = document.getElementById("cw-step-rep");
-const cwStepRemark = document.getElementById("cw-step-remark");
-const cwRepTitle = document.getElementById("cw-rep-title");
+const cwRepNumberSel = document.getElementById("cw-rep-number");
 
 function populateYearDropdown(){
   const college = collegeSelect.value;
@@ -66,25 +66,47 @@ cwYear.addEventListener("change", () => {
   const college = collegeSelect.value;
   cwClass.innerHTML = '<option value="">-- Select Class --</option>';
   cwClassManual.classList.add("hidden");
-  if (cwYear.value === MANUAL_OPTION) { cwClassManual.classList.remove("hidden"); return; }
+  cwManualRepsWrap.classList.add("hidden");
+  if (cwYear.value === MANUAL_OPTION) {
+    cwClassManual.classList.remove("hidden");
+    cwManualRepsWrap.classList.remove("hidden");
+    return;
+  }
   const classes = (COLLEGES[college] && COLLEGES[college][cwYear.value]) || [];
-  classes.forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; cwClass.appendChild(o); });
+  classes.forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c.name;
+    o.textContent = `${c.name} (${c.reps} rep${c.reps>1?'s':''})`;
+    cwClass.appendChild(o);
+  });
   const m=document.createElement("option"); m.value=MANUAL_OPTION; m.textContent="Other / Type manually"; cwClass.appendChild(m);
 });
-cwClass.addEventListener("change", () => cwClassManual.classList.toggle("hidden", cwClass.value !== MANUAL_OPTION));
+
+cwClass.addEventListener("change", () => {
+  const manual = cwClass.value === MANUAL_OPTION;
+  cwClassManual.classList.toggle("hidden", !manual);
+  cwManualRepsWrap.classList.toggle("hidden", !manual);
+});
 
 // seat type: odd rep number = General, even rep number = Reserved
 function seatTypeForRep(n){ return (n % 2 === 1) ? "General" : "Reserved"; }
 
-let cwState = null; // { groupId, repCount, currentRep, base:{college,year,className,department,repCount} }
+function findClassEntry(college, year, className){
+  const yearData = (COLLEGES[college] && COLLEGES[college][year]) || [];
+  return yearData.find(c => c.name === className) || null;
+}
+
+let cwState = null; // { groupId, totalReps, base:{college,year,className,department,repCount} }
 
 function resetClasswiseForm(){
   cwState = null;
+  cwYear.value = "";
+  cwClass.innerHTML = '<option value="">-- Select Class --</option>';
   document.getElementById("cw-department").value = "";
   cwClassManual.value = "";
   cwClassManual.classList.add("hidden");
+  cwManualRepsWrap.classList.add("hidden");
   cwStepRep.classList.add("hidden");
-  cwStepRemark.classList.add("hidden");
   cwStepBasic.classList.remove("hidden");
   clearRepFields();
   document.getElementById("cw-remark-text").value = "";
@@ -100,47 +122,71 @@ document.getElementById("cw-start-btn").addEventListener("click", () => {
   const college = collegeSelect.value;
   const yearManual = cwYear.value === MANUAL_OPTION;
   const yearLabel = cwYear.options[cwYear.selectedIndex] ? cwYear.options[cwYear.selectedIndex].text : "";
-  const className = cwClass.value === MANUAL_OPTION ? cwClassManual.value.trim() : cwClass.value;
+  const classManual = cwClass.value === MANUAL_OPTION;
+  const className = classManual ? cwClassManual.value.trim() : cwClass.value;
+  const year = yearManual ? yearLabel : cwYear.value;
+
   if (!college || !cwYear.value || !className) { showMsg("Please select year and class.", "error"); return; }
 
-  const repCount = parseInt(document.getElementById("cw-repcount").value, 10);
+  let totalReps;
+  if (!yearManual && !classManual) {
+    const entry = findClassEntry(college, year, className);
+    totalReps = entry ? entry.reps : DEFAULT_REPS;
+  } else {
+    totalReps = parseInt(document.getElementById("cw-manual-reps").value, 10) || DEFAULT_REPS;
+  }
+
   cwState = {
     groupId: uuidLike(),
-    repCount,
-    currentRep: 1,
+    totalReps,
     base: {
       college,
-      year: yearManual ? yearLabel : cwYear.value,
+      year,
       className,
       department: document.getElementById("cw-department").value.trim(),
-      repCount
+      repCount: totalReps
     }
   };
 
   cwStepBasic.classList.add("hidden");
   cwStepRep.classList.remove("hidden");
+  document.getElementById("cw-class-info").textContent =
+    `${className} (${year}) — ${totalReps} representative seat${totalReps>1?'s':''} to fill. Add one rep, or come back later for the rest.`;
+  populateRepNumberSelect();
   clearRepFields();
-  updateRepStepUI();
+  document.getElementById("cw-remark-text").value = "";
 });
 
-function updateRepStepUI(){
-  const n = cwState.currentRep;
+function populateRepNumberSelect(){
+  cwRepNumberSel.innerHTML = "";
+  for (let n=1; n<=cwState.totalReps; n++){
+    const seat = seatTypeForRep(n);
+    const o = document.createElement("option");
+    o.value = n; o.textContent = `Rep ${n} — ${seat} Seat`;
+    cwRepNumberSel.appendChild(o);
+  }
+  updateSeatHint();
+}
+cwRepNumberSel.addEventListener("change", updateSeatHint);
+function updateSeatHint(){
+  const n = parseInt(cwRepNumberSel.value, 10);
   const seat = seatTypeForRep(n);
-  cwRepTitle.textContent = `Rep ${n} — ${seat} Seat`;
-  const btn = document.getElementById("cw-rep-submit-btn");
-  btn.textContent = (n < cwState.repCount) ? "Save & Continue" : "Save & Continue to Remark";
+  document.getElementById("cw-seat-hint").textContent = `Seat type: ${seat} (odd-numbered reps = General, even = Reserved).`;
 }
 
 document.getElementById("cw-rep-submit-btn").addEventListener("click", async () => {
-  const n = cwState.currentRep;
+  const n = parseInt(cwRepNumberSel.value, 10);
   const seat = seatTypeForRep(n);
+  const name = document.getElementById("cw-rep-name").value.trim();
+  if (!name) { showMsg("Enter the candidate name.", "error"); return; }
+
   const data = {
     ...cwState.base,
     groupId: cwState.groupId,
     entryType: "rep",
     repNumber: n,
     seatType: seat,
-    candidateName: document.getElementById("cw-rep-name").value.trim(),
+    candidateName: name,
     candidateAddress: document.getElementById("cw-rep-address").value.trim(),
     currentRep: document.getElementById("cw-rep-current").value,
     winningChance: document.getElementById("cw-rep-winchance").value,
@@ -152,20 +198,14 @@ document.getElementById("cw-rep-submit-btn").addEventListener("click", async () 
   btn.disabled = false;
 
   if (!res.ok) { showMsg("Error: " + (res.error || "unknown"), "error"); return; }
-
-  if (cwState.currentRep < cwState.repCount) {
-    cwState.currentRep += 1;
-    clearRepFields();
-    updateRepStepUI();
-    showMsg(`Rep ${n} saved.`, "success");
-  } else {
-    cwStepRep.classList.add("hidden");
-    cwStepRemark.classList.remove("hidden");
-    showMsg(`Rep ${n} saved. Now add the class remark.`, "success");
-  }
+  showMsg(`Rep ${n} saved for ${cwState.base.className}.`, "success");
+  clearRepFields();
 });
 
 document.getElementById("cw-remark-submit-btn").addEventListener("click", async () => {
+  const text = document.getElementById("cw-remark-text").value.trim();
+  if (!text) { showMsg("Enter a remark before saving.", "error"); return; }
+
   const data = {
     ...cwState.base,
     groupId: cwState.groupId,
@@ -176,7 +216,7 @@ document.getElementById("cw-remark-submit-btn").addEventListener("click", async 
     candidateAddress: "",
     currentRep: "",
     winningChance: "",
-    remark: document.getElementById("cw-remark-text").value.trim()
+    remark: text
   };
   const btn = document.getElementById("cw-remark-submit-btn");
   btn.disabled = true;
@@ -184,10 +224,12 @@ document.getElementById("cw-remark-submit-btn").addEventListener("click", async 
   btn.disabled = false;
 
   if (res.ok) {
-    showMsg("Class entry complete.", "success");
-    resetClasswiseForm();
+    showMsg("Remark saved.", "success");
+    document.getElementById("cw-remark-text").value = "";
   } else showMsg("Error: " + (res.error || "unknown"), "error");
 });
+
+document.getElementById("cw-change-class-btn").addEventListener("click", resetClasswiseForm);
 
 // ---------- UNIT COMMITTEE ----------
 forms.unitcommittee.addEventListener("submit", async (e) => {
