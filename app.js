@@ -38,14 +38,11 @@ sectionPicker.addEventListener("click", (e) => {
     return;
   }
 
-  document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    hideAllForms();
-    forms[tab.dataset.section].classList.remove("hidden");
-    clearMsg();
-  });
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  hideAllForms();
+  target.classList.remove("hidden");
+  clearMsg();
 });
 
 
