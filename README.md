@@ -94,3 +94,138 @@
 
 &#x20; **it server-side each time.**
 
+
+CODE FOR THE GOOGLE SHEET
+
+// ====== CONFIG ======
+const SHEETS = {
+  classwise: {
+    name: "ClassDetails",
+    cols: ["id","timestamp","college","year","className","department","repCount",
+           "groupId","entryType","repNumber","seatType","candidateName","candidateAddress",
+           "currentRep","winningChance","remark"]
+  },
+  unitcommittee: {
+    name: "UnitCommittee",
+    cols: ["id","timestamp","college","name","class","year","department","responsibility","phone"]
+  },
+  campusgeneral: {
+    name: "CampusGeneral",
+    cols: ["id","timestamp","college","entryType",
+           "currentUnion","unionDetails",
+           "activityTypes","activityOther","activityRemark",
+           "evalYear","evalText",
+           "gangAssessment"]
+  },
+  socialmedia: {
+    name: "SocialMedia",
+    cols: ["id","timestamp","college","platform","name","purpose","usage"]
+  },
+  issues: {
+    name: "Issues",
+    cols: ["id","timestamp","college","issue","action"]
+  }
+};
+
+function getSheet_(section){
+  const meta = SHEETS[section];
+  if (!meta) throw new Error("Unknown section: " + section);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(meta.name);
+  if (!sh) sh = ss.insertSheet(meta.name);
+  if (sh.getLastRow() === 0) sh.appendRow(meta.cols);
+  return sh;
+}
+
+function checkPassword_(password){
+  const real = PropertiesService.getScriptProperties().getProperty("ADMIN_PASSWORD");
+  return real && password === real;
+}
+
+function jsonOut_(obj){
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const action = body.action;
+
+    if (action === "submit") {
+      return jsonOut_(handleSubmit_(body.section, body.data));
+    }
+    if (action === "login") {
+      return jsonOut_({ ok: checkPassword_(body.password) });
+    }
+    if (action === "list") {
+      if (!checkPassword_(body.password)) return jsonOut_({ error: "Unauthorized" });
+      return jsonOut_(handleList_(body.section, body.college));
+    }
+    if (action === "delete") {
+      if (!checkPassword_(body.password)) return jsonOut_({ error: "Unauthorized" });
+      return jsonOut_(handleDelete_(body.section, body.id));
+    }
+    return jsonOut_({ error: "Unknown action" });
+  } catch(err){
+    return jsonOut_({ error: err.message });
+  }
+}
+
+function handleSubmit_(section, data){
+  const meta = SHEETS[section];
+  const sh = getSheet_(section);
+  const id = Utilities.getUuid();
+  const row = meta.cols.map(c => {
+    if (c === "id") return id;
+    if (c === "timestamp") return new Date();
+    let v = data[c];
+    if (Array.isArray(v)) return JSON.stringify(v);
+    return v === undefined || v === null ? "" : v;
+  });
+  sh.appendRow(row);
+  return { ok: true, id };
+}
+
+function handleList_(section, college){
+  const meta = SHEETS[section];
+  const sh = getSheet_(section);
+  const values = sh.getDataRange().getValues();
+  const header = values[0];
+  const rows = values.slice(1);
+  const idIdx = header.indexOf("id");
+  const collegeIdx = header.indexOf("college");
+  const out = [];
+  rows.forEach((r, i) => {
+    if (!r[idIdx]) return;
+    if (college && r[collegeIdx] !== college) return;
+    const obj = {};
+    header.forEach((h, j) => {
+      let v = r[j];
+      if ((h === "activityTypes") && typeof v === "string" && v.startsWith("[")) {
+        try { v = JSON.parse(v); } catch(e){}
+      }
+      if (h === "timestamp" && v instanceof Date) v = v.toISOString();
+      obj[h] = v;
+    });
+    obj._row = i + 2;
+    out.push(obj);
+  });
+  return { ok: true, rows: out };
+}
+
+function handleDelete_(section, id){
+  const sh = getSheet_(section);
+  const values = sh.getDataRange().getValues();
+  const idIdx = values[0].indexOf("id");
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][idIdx] === id) {
+      sh.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: "Row not found" };
+}
+
+function doGet(){
+  return jsonOut_({ ok: true, message: "SFI Campus Data API is running." });
+}
