@@ -37,7 +37,7 @@ function showDashboard(){
   dashboard.classList.remove("hidden");
 }
 
-let lastRows = [];      // raw row objects (with _row / id) for delete
+let lastRows = [];      // raw row objects (with id) for delete
 let lastColumns = [];   // display columns
 let lastColKeys = [];   // keys matching columns, for table rendering
 let lastSection = "";
@@ -46,28 +46,28 @@ let lastTitle = "";
 const SECTION_META = {
   classwise: {
     label: "Class-wise Details",
-    columns: ["Year","Class","Department","Reps","Current Rep (Gen)","Current Rep (Res)","Winning Chance","Remark"],
-    keys: ["year","className","department","repCount","currentRepGeneral","currentRepReserved","winningChance","remark"]
+    columns: ["Timestamp","Year","Class","Department","Entry Type","Rep #","Seat","Candidate Name","Candidate Address","Current Rep","Winning Chance","Remark"],
+    keys: ["timestamp","year","className","department","entryType","repNumber","seatType","candidateName","candidateAddress","currentRep","winningChance","remark"]
   },
   unitcommittee: {
     label: "Unit Committee Members",
-    columns: ["Name","Class","Year","Department","Responsibility","Phone"],
-    keys: ["name","class","year","department","responsibility","phone"]
+    columns: ["Timestamp","Name","Class","Year","Department","Responsibility","Phone"],
+    keys: ["timestamp","name","class","year","department","responsibility","phone"]
   },
   campusgeneral: {
     label: "Campus General",
-    columns: ["Union Admin","Activities","Programs","Year-wise Eval","Gang Assessment"],
-    keys: ["unionAdmin","activities","programs","yearwiseEval","gangAssessment"]
+    columns: ["Timestamp","Entry Type","Current Union","Union Details","Activity Types","Activity (Other)","Activity Remark","Eval Year","Eval Text","Gang Assessment"],
+    keys: ["timestamp","entryType","currentUnion","unionDetails","activityTypes","activityOther","activityRemark","evalYear","evalText","gangAssessment"]
   },
   socialmedia: {
     label: "Social Media",
-    columns: ["Platform","Account/Group Name","Purpose","Current Usage"],
-    keys: ["platform","name","purpose","usage"]
+    columns: ["Timestamp","Platform","Account/Group Name","Purpose","Current Usage"],
+    keys: ["timestamp","platform","name","purpose","usage"]
   },
   issues: {
     label: "Issues to Address",
-    columns: ["Issue","Suggested Action"],
-    keys: ["issue","action"]
+    columns: ["Timestamp","Issue","Suggested Action"],
+    keys: ["timestamp","issue","action"]
   }
 };
 
@@ -86,8 +86,32 @@ async function loadReport(){
   resultTable.innerHTML = "Loading...";
   const res = await apiCall({ action:"list", section, college, password:getPassword() });
   if (!res.ok){ resultTable.innerHTML = "<p>Error loading data.</p>"; return; }
-  lastRows = res.rows;
+  lastRows = (section === "classwise") ? sortClasswise(res.rows) : res.rows;
   render();
+}
+
+// Groups visually (Year -> Class -> Rep Number, remarks last) even though each
+// rep/remark was saved as its own independent submission, possibly days apart.
+function sortClasswise(rows){
+  return rows.slice().sort((a,b) => {
+    const ya = a.year || "", yb = b.year || "";
+    if (ya !== yb) return ya.localeCompare(yb);
+    const ca = a.className || "", cb = b.className || "";
+    if (ca !== cb) return ca.localeCompare(cb);
+    const ra = a.entryType === "remark" ? Infinity : (Number(a.repNumber) || 0);
+    const rb = b.entryType === "remark" ? Infinity : (Number(b.repNumber) || 0);
+    return ra - rb;
+  });
+}
+
+function formatCell(key, value){
+  if (value === undefined || value === null || value === "") return "";
+  if (key === "timestamp") {
+    const d = new Date(value);
+    return isNaN(d) ? value : d.toLocaleString();
+  }
+  if (key === "activityTypes" && Array.isArray(value)) return value.join(", ");
+  return value;
 }
 
 function render(){
@@ -98,13 +122,7 @@ function render(){
   html += "<th>Action</th></tr></thead><tbody>";
   lastRows.forEach(r => {
     html += "<tr>";
-    lastColKeys.forEach(k => {
-      let v = r[k];
-      if (k === "reps" && Array.isArray(v)) {
-        v = v.map(rp => `Gen: ${rp.generalName||""} (${rp.generalAddress||""}) | Res: ${rp.reservedName||""} (${rp.reservedAddress||""})`).join("<br>");
-      }
-      html += `<td>${v ?? ""}</td>`;
-    });
+    lastColKeys.forEach(k => { html += `<td>${formatCell(k, r[k])}</td>`; });
     html += `<td><button class="btn small secondary" onclick="deleteRow('${r.id}')">Delete</button></td>`;
     html += "</tr>";
   });
@@ -125,13 +143,7 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(14);
   doc.text(lastTitle, 14, 15);
-  const body = lastRows.map(r => lastColKeys.map(k => {
-    let v = r[k];
-    if (k === "reps" && Array.isArray(v)) {
-      v = v.map(rp => `Gen: ${rp.generalName||""} (${rp.generalAddress||""}) / Res: ${rp.reservedName||""} (${rp.reservedAddress||""})`).join("; ");
-    }
-    return v ?? "";
-  }));
+  const body = lastRows.map(r => lastColKeys.map(k => formatCell(k, r[k])));
   doc.autoTable({ head: [lastColumns], body, startY: 20, styles: { fontSize: 8 }, theme: 'grid' });
   doc.save(lastTitle.replace(/[^a-z0-9]/gi, "_") + ".pdf");
 });
