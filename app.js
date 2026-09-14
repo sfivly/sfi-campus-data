@@ -25,14 +25,24 @@ collegeSelect.addEventListener("change", () => {
   }
 });
 
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    hideAllForms();
-    forms[tab.dataset.section].classList.remove("hidden");
-    clearMsg();
-  });
+sectionPicker.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab || !sectionPicker.contains(tab)) return;
+
+  const section = tab.dataset.section;
+  const target = forms[section];
+
+  if (!target) {
+    console.error("No form registered for section:", section);
+    showMsg("This section isn't wired up correctly. Contact the admin.", "error");
+    return;
+  }
+
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  hideAllForms();
+  target.classList.remove("hidden");
+  clearMsg();
 });
 
 function hideAllForms(){ Object.values(forms).forEach(f => f.classList.add("hidden")); }
