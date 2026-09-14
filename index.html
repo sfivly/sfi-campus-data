@@ -32,44 +32,58 @@
 
   <div id="msg" class="msg"></div>
 
-  <form id="form-classwise" class="card hidden">
+  <!-- ================= CLASS-WISE (step-by-step) ================= -->
+  <div id="form-classwise" class="card hidden">
     <h3>Class-wise Details</h3>
-    <label>Year</label>
-    <select id="cw-year"><option value="">-- Select Year --</option></select>
 
-    <label>Class</label>
-    <select id="cw-class"><option value="">-- Select Class --</option></select>
-    <input type="text" id="cw-class-manual" placeholder="Type class name" class="hidden" style="margin-top:6px;">
+    <div id="cw-step-basic">
+      <label>Year</label>
+      <select id="cw-year"><option value="">-- Select Year --</option></select>
 
-    <label>Department</label>
-    <input type="text" id="cw-department" placeholder="e.g. Commerce">
+      <label>Class</label>
+      <select id="cw-class"><option value="">-- Select Class --</option></select>
+      <input type="text" id="cw-class-manual" placeholder="Type class name" class="hidden" style="margin-top:6px;">
 
-    <label>Number of Reps (this class)</label>
-    <select id="cw-repcount">
-      <option value="1">1</option><option value="2">2</option>
-      <option value="3">3</option><option value="4">4</option>
-    </select>
+      <label>Department</label>
+      <input type="text" id="cw-department" placeholder="e.g. Commerce">
 
-    <div id="cw-repwrap"></div>
+      <label>Number of Reps (this class)</label>
+      <select id="cw-repcount">
+        <option value="1">1</option><option value="2">2</option>
+        <option value="3">3</option><option value="4">4</option>
+      </select>
 
-    <label>Current Rep — General Seat (SFI / Others)</label>
-    <select id="cw-cur-general"><option value="SFI">SFI</option><option value="Others">Others</option><option value="Vacant">Vacant</option></select>
+      <button type="button" id="cw-start-btn" class="btn">Start Entry</button>
+    </div>
 
-    <label>Current Rep — Reserved Seat (SFI / Others)</label>
-    <select id="cw-cur-reserved"><option value="SFI">SFI</option><option value="Others">Others</option><option value="N/A">N/A</option></select>
+    <div id="cw-step-rep" class="hidden">
+      <h4 id="cw-rep-title">Rep 1 — General Seat</h4>
+      <label>Candidate Name</label>
+      <input type="text" id="cw-rep-name">
+      <label>Candidate Address</label>
+      <input type="text" id="cw-rep-address">
+      <label>Current Rep (this seat)</label>
+      <select id="cw-rep-current">
+        <option value="SFI">SFI</option><option value="Others">Others</option><option value="Vacant">Vacant</option>
+      </select>
+      <label>Chance of Winning</label>
+      <select id="cw-rep-winchance">
+        <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
+      </select>
+      <button type="button" id="cw-rep-submit-btn" class="btn">Save &amp; Continue</button>
+    </div>
 
-    <label>Chance of Winning</label>
-    <select id="cw-winchance">
-      <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
-    </select>
+    <div id="cw-step-remark" class="hidden">
+      <h4>Detailed Remark about the Class</h4>
+      <label>Favorable/unfavorable factors, key people, strategy</label>
+      <textarea id="cw-remark-text"></textarea>
+      <button type="button" id="cw-remark-submit-btn" class="btn">Submit Remark &amp; Finish</button>
+    </div>
 
-    <label>Detailed Remark about the Class (favorable/unfavorable factors, key people, strategy)</label>
-    <textarea id="cw-remark"></textarea>
+    <p class="hint">Made a mistake in an earlier submission? Just submit a corrected entry — an admin can delete the wrong one later.</p>
+  </div>
 
-    <p class="hint">Made a mistake in an earlier submission for this class? Just submit a corrected entry — an admin can delete the wrong one later.</p>
-    <button type="submit" class="btn">Submit This Class</button>
-  </form>
-
+  <!-- ================= UNIT COMMITTEE ================= -->
   <form id="form-unitcommittee" class="card hidden">
     <h3>Unit Committee Members</h3>
     <label>Name</label>
@@ -87,21 +101,56 @@
     <button type="submit" class="btn">Add Committee Member</button>
   </form>
 
-  <form id="form-campusgeneral" class="card hidden">
-    <h3>Current Campus Situation</h3>
-    <label>Current Union Administration (Ours / Opponent's)</label>
-    <select id="cg-admin"><option value="Ours">Ours</option><option value="Opponent's">Opponent's</option></select>
-    <label>Current Union / Committee's Activities</label>
-    <textarea id="cg-activities"></textarea>
-    <label>Programs Conducted (where we hold the union) in the Last Period</label>
-    <textarea id="cg-programs"></textarea>
-    <label>Year-wise Evaluation (1st / 2nd / 3rd year)</label>
-    <textarea id="cg-yearwise"></textarea>
-    <label>Assessment of Gangs on Campus</label>
-    <textarea id="cg-gangs"></textarea>
-    <button type="submit" class="btn">Save Campus General Info</button>
-  </form>
+  <!-- ================= CAMPUS GENERAL (4 independent sub-forms) ================= -->
+  <div id="form-campusgeneral" class="hidden">
 
+    <form id="form-cg-union" class="card">
+      <h3>Current Union</h3>
+      <label>Current Union</label>
+      <select id="cg-union">
+        <option value="SFI">SFI</option>
+        <option value="Others">Others</option>
+      </select>
+      <label>Details of the Union's Activities</label>
+      <textarea id="cg-union-details" placeholder="Description of activities"></textarea>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+
+    <form id="form-cg-activities" class="card">
+      <h3>Unit Committee Activities (Election-related)</h3>
+      <label><input type="checkbox" class="cg-act-type" value="First Year Convention"> First Year Convention</label>
+      <label><input type="checkbox" class="cg-act-type" value="Unit Convention"> Unit Convention</label>
+      <label><input type="checkbox" class="cg-act-type" value="Campus Camp"> Campus Camp</label>
+      <label><input type="checkbox" id="cg-act-other-check"> Other</label>
+      <input type="text" id="cg-act-other-text" placeholder="Specify other activity" class="hidden">
+      <label>Remarks</label>
+      <textarea id="cg-act-remark"></textarea>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+
+    <form id="form-cg-yearwise" class="card">
+      <h3>Year-wise Evaluation</h3>
+      <label>Year</label>
+      <select id="cg-eval-year">
+        <option value="1st Year">1st Year</option>
+        <option value="2nd Year">2nd Year</option>
+        <option value="3rd Year">3rd Year</option>
+      </select>
+      <label>Evaluation</label>
+      <textarea id="cg-eval-text"></textarea>
+      <button type="submit" class="btn">Submit This Year</button>
+      <p class="hint">Submit again for the next year.</p>
+    </form>
+
+    <form id="form-cg-gangs" class="card">
+      <h3>Assessment of Gangs on Campus</h3>
+      <textarea id="cg-gangs"></textarea>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+
+  </div>
+
+  <!-- ================= SOCIAL MEDIA ================= -->
   <form id="form-socialmedia" class="card hidden">
     <h3>Social Media Presence</h3>
     <label>Platform</label>
@@ -120,6 +169,7 @@
     <p class="hint">Submit again to add another WhatsApp group, Instagram page, etc.</p>
   </form>
 
+  <!-- ================= ISSUES ================= -->
   <form id="form-issues" class="card hidden">
     <h3>Issues to Address</h3>
     <label>Issue</label>
