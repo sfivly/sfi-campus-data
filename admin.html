@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — SFI Campus Data</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Admin Panel</h1>
+  <p>SFI Campus Data Collection — Reports</p>
+</header>
+
+<div class="container">
+
+  <div id="loginBox" class="card login-box">
+    <h3>Admin Login</h3>
+    <label>Admin Password</label>
+    <input type="password" id="admin-password">
+    <button class="btn" id="loginBtn">Login</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="top-actions">
+      <span class="badge">Admin session active</span>
+      <button class="btn small secondary" id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="card">
+      <label>College</label>
+      <select id="admin-college"><option value="">-- Select College --</option></select>
+
+      <label>Report</label>
+      <select id="admin-section">
+        <option value="classwise">Class-wise Details</option>
+        <option value="unitcommittee">Unit Committee</option>
+        <option value="campusgeneral">Campus General</option>
+        <option value="socialmedia">Social Media</option>
+        <option value="issues">Issues to Address</option>
+      </select>
+
+      <button class="btn" id="loadBtn">Load Report</button>
+      <button class="btn secondary" id="pdfBtn">Download as PDF</button>
+    </div>
+
+    <div class="card" id="resultCard">
+      <div id="resultTitle"></div>
+      <div id="resultTable"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="api-config.js"></script>
+<script src="data.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
