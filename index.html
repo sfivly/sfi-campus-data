@@ -32,9 +32,12 @@
 
   <div id="msg" class="msg"></div>
 
-  <!-- ================= CLASS-WISE (step-by-step) ================= -->
+  <!-- ================= CLASS-WISE (independent, per-rep submissions) ================= -->
   <div id="form-classwise" class="card hidden">
     <h3>Class-wise Details</h3>
+    <p class="hint">You don't have to finish a class in one sitting. Pick the year and class, save one rep, and come
+      back any time — today, tomorrow, next class period — to add the next rep or the remark. Every save is stored
+      immediately, on its own.</p>
 
     <div id="cw-step-basic">
       <label>Year</label>
@@ -47,17 +50,21 @@
       <label>Department</label>
       <input type="text" id="cw-department" placeholder="e.g. Commerce">
 
-      <label>Number of Reps (this class)</label>
-      <select id="cw-repcount">
-        <option value="1">1</option><option value="2">2</option>
-        <option value="3">3</option><option value="4">4</option>
-      </select>
+      <div id="cw-manual-reps-wrap" class="hidden">
+        <label>Number of Reps for this class</label>
+        <input type="number" id="cw-manual-reps" min="1" max="10" value="2">
+      </div>
 
-      <button type="button" id="cw-start-btn" class="btn">Start Entry</button>
+      <button type="button" id="cw-start-btn" class="btn">Continue to Rep Entry</button>
     </div>
 
     <div id="cw-step-rep" class="hidden">
-      <h4 id="cw-rep-title">Rep 1 — General Seat</h4>
+      <p class="hint" id="cw-class-info"></p>
+
+      <label>Rep Number (Seat)</label>
+      <select id="cw-rep-number"></select>
+      <p class="hint" id="cw-seat-hint"></p>
+
       <label>Candidate Name</label>
       <input type="text" id="cw-rep-name">
       <label>Candidate Address</label>
@@ -70,14 +77,15 @@
       <select id="cw-rep-winchance">
         <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
       </select>
-      <button type="button" id="cw-rep-submit-btn" class="btn">Save &amp; Continue</button>
-    </div>
+      <button type="button" id="cw-rep-submit-btn" class="btn">Save This Rep</button>
 
-    <div id="cw-step-remark" class="hidden">
-      <h4>Detailed Remark about the Class</h4>
-      <label>Favorable/unfavorable factors, key people, strategy</label>
-      <textarea id="cw-remark-text"></textarea>
-      <button type="button" id="cw-remark-submit-btn" class="btn">Submit Remark &amp; Finish</button>
+      <hr>
+      <h4>Class Remark <span style="font-weight:normal;">(optional — add or update any time)</span></h4>
+      <textarea id="cw-remark-text" placeholder="Favorable/unfavorable factors, key people, strategy"></textarea>
+      <button type="button" id="cw-remark-submit-btn" class="btn secondary">Save Remark</button>
+
+      <hr>
+      <button type="button" id="cw-change-class-btn" class="btn small secondary">Change Year / Class</button>
     </div>
 
     <p class="hint">Made a mistake in an earlier submission? Just submit a corrected entry — an admin can delete the wrong one later.</p>
