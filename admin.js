@@ -219,3 +219,336 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
     btn.textContent = "Download as PDF";
   }
 });
+
+
+// ================= FORMATTED REPORT (matches the official Word template) =================
+
+const REPORT_TITLE = "SFI വളാഞ്ചേരി ഏരിയ കമ്മിറ്റി";
+const REPORT_SUBTITLE = "ക്യാമ്പസ് തിരഞ്ഞെടുപ്പ് 2026";
+
+function esc(v){ return escapeHtml(v == null ? "" : v); }
+
+function reportHeaderHtml(college){
+  return `
+    <div style="text-align:center; margin-bottom:10px;">
+      <div style="font-weight:700; font-size:20px;">${esc(REPORT_TITLE)}</div>
+      <div style="font-weight:700; font-size:15px;">${esc(REPORT_SUBTITLE)}</div>
+    </div>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
+      <tr>
+        <td style="border:1px solid #000; padding:7px; font-weight:700; width:230px; background:#f5f5f5;">ക്യാമ്പസിന്റെ പേര്</td>
+        <td style="border:1px solid #000; padding:7px;">${esc(college)}</td>
+      </tr>
+    </table>
+  `;
+}
+
+function renderReportPage(college, headingText, bodyHtml){
+  return `
+    <div class="report-page" style="width:1500px; padding:24px; background:#fff; color:#000;">
+      ${reportHeaderHtml(college)}
+      ${headingText ? `<div style="font-weight:700; font-size:15px; margin-bottom:10px;">${esc(headingText)}</div>` : ""}
+      ${bodyHtml}
+    </div>
+  `;
+}
+
+// ---------- Class-wise: group each class's independent rep/remark submissions into one row ----------
+function groupClasswiseForReport(rows){
+  const groups = {};
+  const order = [];
+  rows.forEach(r => {
+    const key = r.groupId || (r.year + "|" + r.className);
+    if (!groups[key]) {
+      groups[key] = { year: r.year, className: r.className, repCount: r.repCount, reps: [], remarks: [] };
+      order.push(key);
+    }
+    const g = groups[key];
+    if (r.entryType === "remark") { if (r.remark) g.remarks.push(r.remark); }
+    else if (r.entryType === "rep") { g.reps.push(r); }
+  });
+  const list = order.map(k => groups[k]);
+  list.sort((a, b) => {
+    const ya = a.year || "", yb = b.year || "";
+    if (ya !== yb) return ya.localeCompare(yb);
+    return (a.className || "").localeCompare(b.className || "");
+  });
+  return list;
+}
+
+function seatColumns(reps, seatType){
+  const matched = reps.find(r => r.seatType === seatType);
+  return {
+    name: matched ? (matched.candidateName || "") : "",
+    address: matched ? (matched.candidateAddress || "") : "",
+    current: matched ? (matched.currentRep || "") : "",
+    chance: matched ? (matched.winningChance || "") : ""
+  };
+}
+
+function renderClasswiseSection(rows){
+  const groups = groupClasswiseForReport(rows);
+  let body = "";
+  if (!groups.length) {
+    body = `<tr><td colspan="13" style="border:1px solid #000; padding:10px; text-align:center;">No entries found.</td></tr>`;
+  } else {
+    groups.forEach((g, i) => {
+      const gen = seatColumns(g.reps, "General");
+      const res = seatColumns(g.reps, "Reserved");
+      const remark = g.remarks.join("\n");
+      const c = 'style="border:1px solid #000; padding:6px; white-space:pre-line; vertical-align:top;"';
+      body += `<tr>
+        <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(g.className)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(g.year)}</td>
+        <td style="border:1px solid #000; padding:6px; text-align:center;">${esc(g.repCount)}</td>
+        <td ${c}>${esc(gen.name)}</td>
+        <td ${c}>${esc(gen.address)}</td>
+        <td ${c}>${esc(res.name)}</td>
+        <td ${c}>${esc(res.address)}</td>
+        <td ${c}>${esc(gen.current)}</td>
+        <td ${c}>${esc(res.current)}</td>
+        <td ${c}>${esc(gen.chance)}</td>
+        <td ${c}>${esc(res.chance)}</td>
+        <td ${c}>${esc(remark)}</td>
+      </tr>`;
+    });
+  }
+
+  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
+  return `
+    <table style="width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed;">
+      <thead>
+        <tr>
+          <th rowspan="2" ${th}>ക്രമ നം.</th>
+          <th rowspan="2" ${th}>ക്ലാസ്</th>
+          <th rowspan="2" ${th}>ഇയര്‍</th>
+          <th rowspan="2" ${th}>റെപ്പ്മാരുടെ എണ്ണം</th>
+          <th colspan="2" ${th}>ജനറല്‍ സീറ്റ്</th>
+          <th colspan="2" ${th}>റിസര്‍വ്ഡ് സീറ്റ്</th>
+          <th colspan="2" ${th}>നിലവിലെ റെപ്പ്</th>
+          <th colspan="2" ${th}>ജയിക്കാനുള്ള സാധ്യത</th>
+          <th rowspan="2" ${th}>ക്ലാസ്സിനെ കുറിച്ചുള്ള വിശദമായ റിമാര്‍ക്ക്</th>
+        </tr>
+        <tr>
+          <th ${th}>പേര്</th><th ${th}>അഡ്രസ്സ്</th>
+          <th ${th}>പേര്</th><th ${th}>അഡ്രസ്സ്</th>
+          <th ${th}>GENERAL</th><th ${th}>RESERVED</th>
+          <th ${th}>GENERAL</th><th ${th}>RESERVED</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Unit Committee ----------
+function renderUnitCommitteeSection(rows){
+  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
+  const td = 'style="border:1px solid #000; padding:6px;"';
+  let body = rows.length
+    ? rows.map((r, i) => `<tr>
+        <td ${td} text-align:center;>${i + 1}</td>
+        <td ${td}>${esc(r.name)}</td>
+        <td ${td}>${esc(r.class)}</td>
+        <td ${td}>${esc(r.year)}</td>
+        <td ${td}>${esc(r.department)}</td>
+        <td ${td}>${esc(r.responsibility)}</td>
+        <td ${td}>${esc(r.phone)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="7" ${td} text-align:center;>No entries found.</td></tr>`;
+
+  return `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr>
+        <th ${th}>ക്രമ നം.</th><th ${th}>പേര്</th><th ${th}>ക്ലാസ്</th><th ${th}>ഇയര്‍</th>
+        <th ${th}>ഡിപ്പാര്‍ട്ട്മെന്‍റ്</th><th ${th}>ചുമതല (ക്ലാസ്/ഡിപ്പാര്‍ട്ട്മെന്‍റ്)</th><th ${th}>ഫോണ്‍ നമ്പര്‍</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Campus General (4 mini-tables) ----------
+function latestByType(rows, entryType){
+  const filtered = rows.filter(r => r.entryType === entryType);
+  if (!filtered.length) return null;
+  return filtered.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).pop();
+}
+
+function activitiesText(row){
+  if (!row) return "";
+  const parts = [];
+  if (row.activityTypes && row.activityTypes.length) parts.push(row.activityTypes.join(", "));
+  if (row.activityOther) parts.push("Other: " + row.activityOther);
+  if (row.activityRemark) parts.push(row.activityRemark);
+  return parts.join("\n");
+}
+
+// evalYear select values map to the report's fixed row labels.
+// "PG" is included so it works the moment you add that <option> to the form yourself.
+const YEARWISE_ROWS = [
+  { label: "First Year", value: "1st Year" },
+  { label: "Second Year", value: "2nd Year" },
+  { label: "Third Year", value: "3rd Year" },
+  { label: "PG", value: "PG" }
+];
+
+function renderCampusGeneralSection(rows){
+  const td = 'style="border:1px solid #000; padding:7px; vertical-align:top;"';
+  const tdLabel = 'style="border:1px solid #000; padding:7px; font-weight:700; background:#f5f5f5; width:280px;"';
+
+  const union = latestByType(rows, "union");
+  const activities = latestByType(rows, "activities");
+  const gangs = latestByType(rows, "gangs");
+
+  const yearMap = {};
+  rows.filter(r => r.entryType === "yearwise")
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+      .forEach(r => { yearMap[r.evalYear] = r.evalText; });
+
+  const yearRows = YEARWISE_ROWS.map(row =>
+    `<tr><td ${td}>${esc(row.label)}</td><td ${td} white-space:pre-line;>${esc(yearMap[row.value] || "")}</td></tr>`
+  ).join("");
+
+  return `
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
+      <tr><td ${tdLabel}>നിലവിലെ യൂണിയന്‍ (SFI / Others)</td><td ${td}>${esc(union ? union.currentUnion : "")}</td></tr>
+      <tr><td ${tdLabel}>യൂണിയന്റെ ഒരു വര്‍ഷത്തെ പ്രവര്‍ത്തനങ്ങള്‍</td><td ${td} white-space:pre-line;>${esc(union ? union.unionDetails : "")}</td></tr>
+    </table>
+
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
+      <tr><td ${tdLabel}>യൂണിറ്റ് കമ്മിറ്റിയുടെ പ്രവര്‍ത്തനങ്ങള്‍</td><td ${td} white-space:pre-line;>${esc(activitiesText(activities))}</td></tr>
+    </table>
+
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
+      <tr><td ${td} font-weight:700; background:#f0f0f2;>ഇയറിനെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td><td ${td} font-weight:700; background:#f0f0f2;>Remarks</td></tr>
+      ${yearRows}
+    </table>
+
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <tr><td ${tdLabel}>ക്യാമ്പസിലെ ഗ്യാങ്ങുകളെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td><td ${td} white-space:pre-line;>${esc(gangs ? gangs.gangAssessment : "")}</td></tr>
+    </table>
+  `;
+}
+
+// ---------- Social Media ----------
+function renderSocialMediaSection(rows){
+  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
+  const td = 'style="border:1px solid #000; padding:6px;"';
+  let body = rows.length
+    ? rows.map(r => `<tr>
+        <td ${td}>${esc(r.platform)}</td>
+        <td ${td}>${esc(r.name)}</td>
+        <td ${td}>${esc(r.purpose)}</td>
+        <td ${td} white-space:pre-line;>${esc(r.usage)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="4" ${td} text-align:center;>No entries found.</td></tr>`;
+
+  return `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr>
+        <th ${th}>പ്ലാറ്റ്ഫോം</th><th ${th}>അക്കൗണ്ട് / ഗ്രൂപ്പ് പേര്</th><th ${th}>purpose</th><th ${th}>നിലവിലെ ഉപയോഗ രീതി / സജീവത</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Issues ----------
+function renderIssuesSection(rows){
+  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
+  const td = 'style="border:1px solid #000; padding:6px;"';
+  let body = rows.length
+    ? rows.map((r, i) => `<tr>
+        <td ${td} text-align:center;>${i + 1}</td>
+        <td ${td} white-space:pre-line;>${esc(r.issue)}</td>
+        <td ${td} white-space:pre-line;>${esc(r.action)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="3" ${td} text-align:center;>No entries found.</td></tr>`;
+
+  return `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr><th ${th}>ക്രമ നം.</th><th ${th}>വിഷയം</th><th ${th}>നിര്‍ദ്ദേശിക്കുന്ന നടപടി / സമീപനം</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Capture + assemble the multi-page PDF ----------
+async function ensureFontLoaded(){
+  try {
+    await document.fonts.load("16px 'Anek Malayalam'");
+    await document.fonts.ready;
+  } catch (e) { console.warn("Font load check failed:", e); }
+}
+
+async function captureAndAddToPdf(doc, html, isFirstPage){
+  const wrap = document.createElement("div");
+  wrap.style.position = "fixed";
+  wrap.style.left = "-99999px";
+  wrap.style.top = "0";
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+
+  const canvas = await html2canvas(wrap, { scale: 2, useCORS: true });
+  document.body.removeChild(wrap);
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const imgWidth = pageWidth - 40;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+
+  let heightLeft = imgHeight;
+  let position = 20;
+
+  if (!isFirstPage) doc.addPage();
+  doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+  heightLeft -= (pageHeight - 40);
+
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight + 20;
+    doc.addPage();
+    doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+    heightLeft -= (pageHeight - 40);
+  }
+}
+
+document.getElementById("fullReportBtn").addEventListener("click", async () => {
+  const college = adminCollege.value;
+  if (!college) { alert("Select a college first."); return; }
+
+  const btn = document.getElementById("fullReportBtn");
+  btn.disabled = true;
+  btn.textContent = "Generating report...";
+
+  try {
+    await ensureFontLoaded();
+
+    const [cwRes, ucRes, cgRes, smRes, isRes] = await Promise.all([
+      apiCall({ action: "list", section: "classwise", college, password: getPassword() }),
+      apiCall({ action: "list", section: "unitcommittee", college, password: getPassword() }),
+      apiCall({ action: "list", section: "campusgeneral", college, password: getPassword() }),
+      apiCall({ action: "list", section: "socialmedia", college, password: getPassword() }),
+      apiCall({ action: "list", section: "issues", college, password: getPassword() })
+    ]);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+
+    await captureAndAddToPdf(doc, renderReportPage(college, "", renderClasswiseSection(cwRes.ok ? sortClasswise(cwRes.rows) : [])), true);
+    await captureAndAddToPdf(doc, renderReportPage(college, "യൂണിറ്റ് കമ്മിറ്റി അംഗങ്ങള്‍", renderUnitCommitteeSection(ucRes.ok ? ucRes.rows : [])), false);
+    await captureAndAddToPdf(doc, renderReportPage(college, "", renderCampusGeneralSection(cgRes.ok ? cgRes.rows : [])), false);
+    await captureAndAddToPdf(doc, renderReportPage(college, "നിലവിലെ സോഷ്യല്‍ മീഡിയ ഇടപെടല്‍.", renderSocialMediaSection(smRes.ok ? smRes.rows : [])), false);
+    await captureAndAddToPdf(doc, renderReportPage(college, "നിര്‍ബന്ധമായും അഡ്രസ്സ് ചെയ്യേണ്ട വിഷയങ്ങള്‍", renderIssuesSection(isRes.ok ? isRes.rows : [])), false);
+
+    doc.save(college.replace(/[^a-z0-9]/gi, "_") + "_Full_Report.pdf");
+  } catch (err) {
+    console.error(err);
+    alert("Report generation failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Generate Full Report (PDF)";
+  }
+});
