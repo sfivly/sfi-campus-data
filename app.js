@@ -1,5 +1,6 @@
 const collegeSelect = document.getElementById("collegeSelect");
 const sectionPicker = document.getElementById("sectionPicker");
+const homeBtn = document.getElementById("homeBtn");
 const msgBox = document.getElementById("msg");
 const forms = {
   classwise: document.getElementById("form-classwise"),
@@ -18,13 +19,19 @@ Object.keys(COLLEGES).forEach(c => {
 collegeSelect.addEventListener("change", () => {
   if (collegeSelect.value) {
     sectionPicker.classList.remove("hidden");
+    homeBtn.classList.add("hidden");
+    hideAllForms();
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     populateYearDropdown();
   } else {
     sectionPicker.classList.add("hidden");
+    homeBtn.classList.add("hidden");
     hideAllForms();
   }
 });
 
+// Clicking a tab: show only that section's form, hide the tab list itself
+// so the person entering data isn't distracted by the other options.
 sectionPicker.addEventListener("click", (e) => {
   const tab = e.target.closest(".tab");
   if (!tab || !sectionPicker.contains(tab)) return;
@@ -42,9 +49,19 @@ sectionPicker.addEventListener("click", (e) => {
   tab.classList.add("active");
   hideAllForms();
   target.classList.remove("hidden");
+  sectionPicker.classList.add("hidden");
+  homeBtn.classList.remove("hidden");
   clearMsg();
 });
 
+// Home: back to the section list for the SAME college (not back to college selection).
+homeBtn.addEventListener("click", () => {
+  hideAllForms();
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  homeBtn.classList.add("hidden");
+  sectionPicker.classList.remove("hidden");
+  clearMsg();
+});
 
 function hideAllForms(){ Object.values(forms).forEach(f => f.classList.add("hidden")); }
 function showMsg(text, type){
@@ -107,13 +124,12 @@ function findClassEntry(college, year, className){
   return yearData.find(c => c.name === className) || null;
 }
 
-let cwState = null; // { groupId, totalReps, base:{college,year,className,department,repCount} }
+let cwState = null; // { groupId, totalReps, base:{college,year,className,repCount} }
 
 function resetClasswiseForm(){
   cwState = null;
   cwYear.value = "";
   cwClass.innerHTML = '<option value="">-- Select Class --</option>';
-  document.getElementById("cw-department").value = "";
   cwClassManual.value = "";
   cwClassManual.classList.add("hidden");
   cwManualRepsWrap.classList.add("hidden");
@@ -154,7 +170,6 @@ document.getElementById("cw-start-btn").addEventListener("click", () => {
       college,
       year,
       className,
-      department: document.getElementById("cw-department").value.trim(),
       repCount: totalReps
     }
   };
