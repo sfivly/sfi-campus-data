@@ -60,7 +60,7 @@
     <div id="cw-step-rep" class="hidden">
       <p class="hint" id="cw-class-info"></p>
 
-      <label>Rep Number (Seat)</label>
+            <label>Representative Type</label>
       <select id="cw-rep-number"></select>
       <p class="hint" id="cw-seat-hint"></p>
 
@@ -70,10 +70,12 @@
       <input type="text" id="cw-rep-address">
       <label>Current Rep (this seat)</label>
       <select id="cw-rep-current">
+        <option value="">-- Select --</option>
         <option value="SFI">SFI</option><option value="Others">Others</option><option value="Vacant">Vacant</option>
       </select>
       <label>Chance of Winning (this seat)</label>
       <select id="cw-rep-winchance">
+        <option value="">-- Select --</option>
         <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
       </select>
       <button type="button" id="cw-rep-submit-btn" class="btn">Save This Rep</button>
