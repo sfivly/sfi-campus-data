@@ -55,3 +55,13 @@ th{background:#f0f0f2;}
 .badge{font-size:11px; background:#f0f0f2; padding:3px 8px; border-radius:20px; color:var(--muted);}
 .login-box{max-width:360px; margin:60px auto;}
 a.link{color:var(--primary); font-size:13px;}
+
+@font-face {
+  font-family: 'Anek Malayalam';
+  src: url('fonts/AnekMalayalam-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+.report-page, .report-page * {
+  font-family: 'Anek Malayalam', 'Noto Sans Malayalam', sans-serif !important;
+}
