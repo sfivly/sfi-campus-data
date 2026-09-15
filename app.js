@@ -188,8 +188,7 @@ document.getElementById("cw-start-btn").addEventListener("click", () => {
   cwStepBasic.classList.add("hidden");
   cwStepRep.classList.remove("hidden");
   document.getElementById("cw-class-info").innerHTML =
-    `<span style="font-weight:700; color:#000;">${escapeHtml(className)} — ${escapeHtml(year)}</span><br>` +
-    `${totalReps} representative seat${totalReps>1?'s':''} to fill. Add one rep, or come back later for the rest.`;
+    `<span style="font-weight:700; color:#000;">${escapeHtml(className)} — ${escapeHtml(year)}</span><br>`;
   populateRepNumberSelect();
   clearRepFields();
   document.getElementById("cw-remark-text").value = "";
