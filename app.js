@@ -72,6 +72,15 @@ function showMsg(text, type){
 function clearMsg(){ msgBox.className = "msg"; msgBox.textContent=""; }
 function uuidLike(){ return "g-" + Date.now() + "-" + Math.random().toString(16).slice(2); }
 
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ---------- CLASS-WISE (independent, per-rep submissions) ----------
 const cwYear = document.getElementById("cw-year");
 const cwClass = document.getElementById("cw-class");
@@ -141,8 +150,10 @@ function resetClasswiseForm(){
 function clearRepFields(){
   document.getElementById("cw-rep-name").value = "";
   document.getElementById("cw-rep-address").value = "";
-  document.getElementById("cw-rep-current").value = "SFI";
-  document.getElementById("cw-rep-winchance").value = "High";
+  document.getElementById("cw-rep-current").value = "";
+  document.getElementById("cw-rep-winchance").value = "";
+  cwRepNumberSel.value = "";
+  document.getElementById("cw-seat-hint").textContent = "";
 }
 
 document.getElementById("cw-start-btn").addEventListener("click", () => {
@@ -176,35 +187,49 @@ document.getElementById("cw-start-btn").addEventListener("click", () => {
 
   cwStepBasic.classList.add("hidden");
   cwStepRep.classList.remove("hidden");
-  document.getElementById("cw-class-info").textContent =
-    `${className} (${year}) — ${totalReps} representative seat${totalReps>1?'s':''} to fill. Add one rep, or come back later for the rest.`;
+  document.getElementById("cw-class-info").innerHTML =
+    `<span style="font-weight:700; color:#000;">${escapeHtml(className)} — ${escapeHtml(year)}</span><br>` +
+    `${totalReps} representative seat${totalReps>1?'s':''} to fill. Add one rep, or come back later for the rest.`;
   populateRepNumberSelect();
   clearRepFields();
   document.getElementById("cw-remark-text").value = "";
 });
 
 function populateRepNumberSelect(){
-  cwRepNumberSel.innerHTML = "";
-  for (let n=1; n<=cwState.totalReps; n++){
+  cwRepNumberSel.innerHTML = '<option value="">-- Select Representative Type --</option>';
+  const maxReps = Math.min(cwState.totalReps, 2);
+  for (let n=1; n<=maxReps; n++){
     const seat = seatTypeForRep(n);
     const o = document.createElement("option");
-    o.value = n; o.textContent = `Rep ${n} — ${seat} Seat`;
+    o.value = n; o.textContent = `${seat} Seat`;
     cwRepNumberSel.appendChild(o);
   }
-  updateSeatHint();
+  document.getElementById("cw-seat-hint").textContent = "";
 }
 cwRepNumberSel.addEventListener("change", updateSeatHint);
 function updateSeatHint(){
-  const n = parseInt(cwRepNumberSel.value, 10);
+  const val = cwRepNumberSel.value;
+  if (!val) { document.getElementById("cw-seat-hint").textContent = ""; return; }
+  const n = parseInt(val, 10);
   const seat = seatTypeForRep(n);
-  document.getElementById("cw-seat-hint").textContent = `Seat type: ${seat} (odd-numbered reps = General, even = Reserved).`;
+  document.getElementById("cw-seat-hint").textContent = `Seat type: ${seat}.`;
 }
 
 document.getElementById("cw-rep-submit-btn").addEventListener("click", async () => {
-  const n = parseInt(cwRepNumberSel.value, 10);
-  const seat = seatTypeForRep(n);
+  const repVal = cwRepNumberSel.value;
   const name = document.getElementById("cw-rep-name").value.trim();
+  const address = document.getElementById("cw-rep-address").value.trim();
+  const currentRep = document.getElementById("cw-rep-current").value;
+  const winningChance = document.getElementById("cw-rep-winchance").value;
+
+  if (!repVal) { showMsg("Select the Representative Type.", "error"); return; }
   if (!name) { showMsg("Enter the candidate name.", "error"); return; }
+  if (!address) { showMsg("Enter the candidate address.", "error"); return; }
+  if (!currentRep) { showMsg("Select the Current Rep.", "error"); return; }
+  if (!winningChance) { showMsg("Select the Chance of Winning.", "error"); return; }
+
+  const n = parseInt(repVal, 10);
+  const seat = seatTypeForRep(n);
 
   const data = {
     ...cwState.base,
@@ -213,9 +238,9 @@ document.getElementById("cw-rep-submit-btn").addEventListener("click", async () 
     repNumber: n,
     seatType: seat,
     candidateName: name,
-    candidateAddress: document.getElementById("cw-rep-address").value.trim(),
-    currentRep: document.getElementById("cw-rep-current").value,
-    winningChance: document.getElementById("cw-rep-winchance").value,
+    candidateAddress: address,
+    currentRep,
+    winningChance,
     remark: ""
   };
   const btn = document.getElementById("cw-rep-submit-btn");
@@ -224,7 +249,7 @@ document.getElementById("cw-rep-submit-btn").addEventListener("click", async () 
   btn.disabled = false;
 
   if (!res.ok) { showMsg("Error: " + (res.error || "unknown"), "error"); return; }
-  showMsg(`Rep ${n} saved for ${cwState.base.className}.`, "success");
+  showMsg(`${seat} seat rep saved for ${cwState.base.className}.`, "success");
   clearRepFields();
 });
 
