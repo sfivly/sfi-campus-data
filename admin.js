@@ -46,8 +46,8 @@ let lastTitle = "";
 const SECTION_META = {
   classwise: {
     label: "Class-wise Details",
-    columns: ["Timestamp","Year","Class","Department","Entry Type","Rep #","Seat","Candidate Name","Candidate Address","Current Rep","Winning Chance","Remark"],
-    keys: ["timestamp","year","className","department","entryType","repNumber","seatType","candidateName","candidateAddress","currentRep","winningChance","remark"]
+    columns: ["Timestamp","Year","Class","Entry Type","Rep #","Seat","Candidate Name","Candidate Address","Current Rep","Winning Chance","Remark"],
+    keys: ["timestamp","year","className","entryType","repNumber","seatType","candidateName","candidateAddress","currentRep","winningChance","remark"]
   },
   unitcommittee: {
     label: "Unit Committee Members",
@@ -158,8 +158,6 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
   btn.textContent = "Generating PDF...";
 
   try {
-    // Render a clean, off-screen copy of the table for capture (avoids
-    // capturing the "Action/Delete" column and keeps styling consistent).
     const exportWrap = document.createElement("div");
     exportWrap.style.position = "fixed";
     exportWrap.style.left = "-99999px";
@@ -185,11 +183,11 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
     exportWrap.innerHTML = html;
     document.body.appendChild(exportWrap);
 
-    const canvas = await html2canvas(exportWrap, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(exportWrap, { scale: 1.5, useCORS: true, backgroundColor: "#ffffff" });
     document.body.removeChild(exportWrap);
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4", compress: true });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -198,15 +196,15 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
 
     let heightLeft = imgHeight;
     let position = 20;
-    const imgData = canvas.toDataURL("image/png");
+    const imgData = canvas.toDataURL("image/jpeg", 0.85);
 
-    doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+    doc.addImage(imgData, "JPEG", 20, position, imgWidth, imgHeight, undefined, "FAST");
     heightLeft -= (pageHeight - 40);
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeight + 20;
       doc.addPage();
-      doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+      doc.addImage(imgData, "JPEG", 20, position, imgWidth, imgHeight, undefined, "FAST");
       heightLeft -= (pageHeight - 40);
     }
 
@@ -219,7 +217,6 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
     btn.textContent = "Download as PDF";
   }
 });
-
 
 // ================= FORMATTED REPORT (matches the official Word template) =================
 
@@ -276,6 +273,7 @@ function groupClasswiseForReport(rows){
   return list;
 }
 
+// One class now has at most one General and one Reserved rep entry.
 function seatColumns(reps, seatType){
   const matched = reps.find(r => r.seatType === seatType);
   return {
@@ -290,17 +288,17 @@ function renderClasswiseSection(rows){
   const groups = groupClasswiseForReport(rows);
   let body = "";
   if (!groups.length) {
-    body = `<tr><td colspan="13" style="border:1px solid #000; padding:10px; text-align:center;">No entries found.</td></tr>`;
+    body = `<tr><td colspan="13" style="border:1px solid #000; padding:10px; text-align:center; font-style:italic; color:#777;">No entries found.</td></tr>`;
   } else {
     groups.forEach((g, i) => {
       const gen = seatColumns(g.reps, "General");
       const res = seatColumns(g.reps, "Reserved");
       const remark = g.remarks.join("\n");
-      const c = 'style="border:1px solid #000; padding:6px; white-space:pre-line; vertical-align:top;"';
+      const c = 'style="border:1px solid #000; padding:6px; white-space:pre-line; vertical-align:top; word-wrap:break-word;"';
       body += `<tr>
         <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
-        <td style="border:1px solid #000; padding:6px;">${esc(g.className)}</td>
-        <td style="border:1px solid #000; padding:6px;">${esc(g.year)}</td>
+        <td style="border:1px solid #000; padding:6px; word-wrap:break-word;">${esc(g.className)}</td>
+        <td style="border:1px solid #000; padding:6px; word-wrap:break-word;">${esc(g.year)}</td>
         <td style="border:1px solid #000; padding:6px; text-align:center;">${esc(g.repCount)}</td>
         <td ${c}>${esc(gen.name)}</td>
         <td ${c}>${esc(gen.address)}</td>
@@ -315,9 +313,15 @@ function renderClasswiseSection(rows){
     });
   }
 
-  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
+  const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2; word-wrap:break-word;"';
   return `
     <table style="width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed;">
+      <colgroup>
+        <col style="width:4%"><col style="width:8%"><col style="width:7%"><col style="width:6%">
+        <col style="width:9%"><col style="width:10%"><col style="width:9%"><col style="width:10%">
+        <col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%">
+        <col style="width:13%">
+      </colgroup>
       <thead>
         <tr>
           <th rowspan="2" ${th}>ക്രമ നം.</th>
@@ -345,18 +349,17 @@ function renderClasswiseSection(rows){
 // ---------- Unit Committee ----------
 function renderUnitCommitteeSection(rows){
   const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
-  const td = 'style="border:1px solid #000; padding:6px;"';
   let body = rows.length
     ? rows.map((r, i) => `<tr>
-        <td ${td} text-align:center;>${i + 1}</td>
-        <td ${td}>${esc(r.name)}</td>
-        <td ${td}>${esc(r.class)}</td>
-        <td ${td}>${esc(r.year)}</td>
-        <td ${td}>${esc(r.department)}</td>
-        <td ${td}>${esc(r.responsibility)}</td>
-        <td ${td}>${esc(r.phone)}</td>
+        <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.name)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.class)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.year)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.department)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.responsibility)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.phone)}</td>
       </tr>`).join("")
-    : `<tr><td colspan="7" ${td} text-align:center;>No entries found.</td></tr>`;
+    : `<tr><td colspan="7" style="border:1px solid #000; padding:8px; text-align:center; font-style:italic; color:#777;">No entries found.</td></tr>`;
 
   return `
     <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -395,7 +398,6 @@ const YEARWISE_ROWS = [
 ];
 
 function renderCampusGeneralSection(rows){
-  const td = 'style="border:1px solid #000; padding:7px; vertical-align:top;"';
   const tdLabel = 'style="border:1px solid #000; padding:7px; font-weight:700; background:#f5f5f5; width:280px;"';
 
   const union = latestByType(rows, "union");
@@ -407,27 +409,31 @@ function renderCampusGeneralSection(rows){
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       .forEach(r => { yearMap[r.evalYear] = r.evalText; });
 
-  const yearRows = YEARWISE_ROWS.map(row =>
-    `<tr><td ${td}>${esc(row.label)}</td><td ${td} white-space:pre-line;>${esc(yearMap[row.value] || "")}</td></tr>`
-  ).join("");
+  const yearRows = YEARWISE_ROWS.map(row => `<tr>
+      <td style="border:1px solid #000; padding:7px; vertical-align:top;">${esc(row.label)}</td>
+      <td style="border:1px solid #000; padding:7px; vertical-align:top; white-space:pre-line;">${esc(yearMap[row.value] || "")}</td>
+    </tr>`).join("");
 
   return `
     <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
-      <tr><td ${tdLabel}>നിലവിലെ യൂണിയന്‍ (SFI / Others)</td><td ${td}>${esc(union ? union.currentUnion : "")}</td></tr>
-      <tr><td ${tdLabel}>യൂണിയന്റെ ഒരു വര്‍ഷത്തെ പ്രവര്‍ത്തനങ്ങള്‍</td><td ${td} white-space:pre-line;>${esc(union ? union.unionDetails : "")}</td></tr>
+      <tr><td ${tdLabel}>നിലവിലെ യൂണിയന്‍ (SFI / Others)</td><td style="border:1px solid #000; padding:7px; vertical-align:top;">${esc(union ? union.currentUnion : "")}</td></tr>
+      <tr><td ${tdLabel}>യൂണിയന്റെ ഒരു വര്‍ഷത്തെ പ്രവര്‍ത്തനങ്ങള്‍</td><td style="border:1px solid #000; padding:7px; vertical-align:top; white-space:pre-line;">${esc(union ? union.unionDetails : "")}</td></tr>
     </table>
 
     <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
-      <tr><td ${tdLabel}>യൂണിറ്റ് കമ്മിറ്റിയുടെ പ്രവര്‍ത്തനങ്ങള്‍</td><td ${td} white-space:pre-line;>${esc(activitiesText(activities))}</td></tr>
+      <tr><td ${tdLabel}>യൂണിറ്റ് കമ്മിറ്റിയുടെ പ്രവര്‍ത്തനങ്ങള്‍</td><td style="border:1px solid #000; padding:7px; vertical-align:top; white-space:pre-line;">${esc(activitiesText(activities))}</td></tr>
     </table>
 
     <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
-      <tr><td ${td} font-weight:700; background:#f0f0f2;>ഇയറിനെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td><td ${td} font-weight:700; background:#f0f0f2;>Remarks</td></tr>
+      <tr>
+        <td style="border:1px solid #000; padding:7px; font-weight:700; background:#f0f0f2;">ഇയറിനെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td>
+        <td style="border:1px solid #000; padding:7px; font-weight:700; background:#f0f0f2;">Remarks</td>
+      </tr>
       ${yearRows}
     </table>
 
     <table style="width:100%; border-collapse:collapse; font-size:13px;">
-      <tr><td ${tdLabel}>ക്യാമ്പസിലെ ഗ്യാങ്ങുകളെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td><td ${td} white-space:pre-line;>${esc(gangs ? gangs.gangAssessment : "")}</td></tr>
+      <tr><td ${tdLabel}>ക്യാമ്പസിലെ ഗ്യാങ്ങുകളെ കുറിച്ചുള്ള വിലയിരുത്തല്‍</td><td style="border:1px solid #000; padding:7px; vertical-align:top; white-space:pre-line;">${esc(gangs ? gangs.gangAssessment : "")}</td></tr>
     </table>
   `;
 }
@@ -435,15 +441,14 @@ function renderCampusGeneralSection(rows){
 // ---------- Social Media ----------
 function renderSocialMediaSection(rows){
   const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
-  const td = 'style="border:1px solid #000; padding:6px;"';
   let body = rows.length
     ? rows.map(r => `<tr>
-        <td ${td}>${esc(r.platform)}</td>
-        <td ${td}>${esc(r.name)}</td>
-        <td ${td}>${esc(r.purpose)}</td>
-        <td ${td} white-space:pre-line;>${esc(r.usage)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.platform)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.name)}</td>
+        <td style="border:1px solid #000; padding:6px;">${esc(r.purpose)}</td>
+        <td style="border:1px solid #000; padding:6px; white-space:pre-line;">${esc(r.usage)}</td>
       </tr>`).join("")
-    : `<tr><td colspan="4" ${td} text-align:center;>No entries found.</td></tr>`;
+    : `<tr><td colspan="4" style="border:1px solid #000; padding:8px; text-align:center; font-style:italic; color:#777;">No entries found.</td></tr>`;
 
   return `
     <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -458,14 +463,13 @@ function renderSocialMediaSection(rows){
 // ---------- Issues ----------
 function renderIssuesSection(rows){
   const th = 'style="border:1px solid #000; padding:6px; background:#f0f0f2;"';
-  const td = 'style="border:1px solid #000; padding:6px;"';
   let body = rows.length
     ? rows.map((r, i) => `<tr>
-        <td ${td} text-align:center;>${i + 1}</td>
-        <td ${td} white-space:pre-line;>${esc(r.issue)}</td>
-        <td ${td} white-space:pre-line;>${esc(r.action)}</td>
+        <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000; padding:6px; white-space:pre-line;">${esc(r.issue)}</td>
+        <td style="border:1px solid #000; padding:6px; white-space:pre-line;">${esc(r.action)}</td>
       </tr>`).join("")
-    : `<tr><td colspan="3" ${td} text-align:center;>No entries found.</td></tr>`;
+    : `<tr><td colspan="3" style="border:1px solid #000; padding:8px; text-align:center; font-style:italic; color:#777;">No entries found.</td></tr>`;
 
   return `
     <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -488,29 +492,30 @@ async function captureAndAddToPdf(doc, html, isFirstPage){
   wrap.style.position = "fixed";
   wrap.style.left = "-99999px";
   wrap.style.top = "0";
+  wrap.style.background = "#ffffff";
   wrap.innerHTML = html;
   document.body.appendChild(wrap);
 
-  const canvas = await html2canvas(wrap, { scale: 2, useCORS: true });
+  const canvas = await html2canvas(wrap, { scale: 1.5, useCORS: true, backgroundColor: "#ffffff" });
   document.body.removeChild(wrap);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const imgWidth = pageWidth - 40;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  const imgData = canvas.toDataURL("image/png");
+  const imgData = canvas.toDataURL("image/jpeg", 0.85);
 
   let heightLeft = imgHeight;
   let position = 20;
 
   if (!isFirstPage) doc.addPage();
-  doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+  doc.addImage(imgData, "JPEG", 20, position, imgWidth, imgHeight, undefined, "FAST");
   heightLeft -= (pageHeight - 40);
 
   while (heightLeft > 0) {
     position = heightLeft - imgHeight + 20;
     doc.addPage();
-    doc.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+    doc.addImage(imgData, "JPEG", 20, position, imgWidth, imgHeight, undefined, "FAST");
     heightLeft -= (pageHeight - 40);
   }
 }
@@ -535,7 +540,7 @@ document.getElementById("fullReportBtn").addEventListener("click", async () => {
     ]);
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4", compress: true });
 
     await captureAndAddToPdf(doc, renderReportPage(college, "", renderClasswiseSection(cwRes.ok ? sortClasswise(cwRes.rows) : [])), true);
     await captureAndAddToPdf(doc, renderReportPage(college, "യൂണിറ്റ് കമ്മിറ്റി അംഗങ്ങള്‍", renderUnitCommitteeSection(ucRes.ok ? ucRes.rows : [])), false);
